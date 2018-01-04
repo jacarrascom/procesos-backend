@@ -26,6 +26,7 @@ import pe.cpebs.procesos.model.entities.Objeto;
 import pe.cpebs.procesos.model.entities.Proceso;
 import pe.cpebs.procesos.model.entities.ProcesoCronograma;
 import pe.cpebs.procesos.model.entities.ProcesoItem;
+import pe.cpebs.procesos.model.entities.Proveedor;
 import pe.cpebs.procesos.model.repository.jpa.CronogramaEtapaRepository;
 import pe.cpebs.procesos.model.repository.jpa.EntidadRepository;
 import pe.cpebs.procesos.model.repository.jpa.EstadoRepository;
@@ -34,6 +35,7 @@ import pe.cpebs.procesos.model.repository.jpa.ObjetoRepository;
 import pe.cpebs.procesos.model.repository.jpa.ProcesoCronogramaRepository;
 import pe.cpebs.procesos.model.repository.jpa.ProcesoItemRepository;
 import pe.cpebs.procesos.model.repository.jpa.ProcesoRepository;
+import pe.cpebs.procesos.model.repository.jpa.ProveedorRepository;
 import pe.cpebs.procesos.service.ProcesoSeaceService;
 import pe.cpebs.procesos.util.DateUtil;
 
@@ -49,7 +51,8 @@ public class ProcesoSeaceServiceImpl implements ProcesoSeaceService {
 	@Autowired CronogramaEtapaRepository cronogramaEtapaRepository;	
 	@Autowired EstadoRepository estadoRepository;	
 	@Autowired ProcesoCronogramaRepository procesoCronogramaRepository;	
-	@Autowired ProcesoItemRepository procesoItemRepository;
+	@Autowired ProcesoItemRepository procesoItemRepository;	
+	@Autowired ProveedorRepository proveedorRepository;
 	
 	Document 				doc;
 		
@@ -58,6 +61,7 @@ public class ProcesoSeaceServiceImpl implements ProcesoSeaceService {
 	Moneda   				moneda;
 	Estado					estado;
 	CronogramaEtapa 		cronogramaEtapa;
+	Proveedor				proveedor;
 	Proceso  				proceso;
 	ProcesoCronograma 		cronograma;	
 	ProcesoItem 			item;
@@ -223,7 +227,8 @@ public class ProcesoSeaceServiceImpl implements ProcesoSeaceService {
 							
 							moneda = monedaRepository.findByDescMoneda(descMoneda); 
 							if (moneda == null) {
-								moneda = new Moneda(descMoneda);							
+								moneda = new Moneda(descMoneda);		
+								monedaRepository.save(moneda);
 							}
 							proceso.setMoneda(moneda);
 							break;
@@ -290,9 +295,13 @@ public class ProcesoSeaceServiceImpl implements ProcesoSeaceService {
 								nroitem = Integer.parseInt(valor.substring(0, valor.indexOf("-")).trim());
 								item.setId(new IDProcesoItem(idconvocatoria, nroitem));
 								item.setDescripcion(valor.substring(valor.indexOf("-")+2));
-							}								
+							} else if(valor.length() > 0 && valor.equalsIgnoreCase("No se encontraron Datos")) {
+								items.add(item);	
+							}							
 						} else if ( colsi.size() == 8) {
-							if(colsi.get(0).text().equalsIgnoreCase("Codigo CUBSO:")) item.setCodigoCUBSO(Long.parseLong(colsi.get(1).text()));							
+							if(colsi.get(0).text().equalsIgnoreCase("Codigo CUBSO:")) {								
+								if(colsi.get(1).text().length()>0) item.setCodigoCUBSO(Long.parseLong(colsi.get(1).text()));							
+							}
 							if(colsi.get(0).text().equalsIgnoreCase("Denominación del Bien o Servicio Común")) item.setDescripcionBienComun(colsi.get(1).text());
 
 							if(colsi.get(2).text().equalsIgnoreCase("Cantidad:")) {
@@ -314,7 +323,7 @@ public class ProcesoSeaceServiceImpl implements ProcesoSeaceService {
 								moneda = monedaRepository.findByDescMoneda(descMoneda); 
 								if (moneda == null) {
 									moneda = new Moneda(descMoneda);	
-									//monedaRepository.save(moneda);
+									monedaRepository.save(moneda);
 								}
 								item.setMoneda(moneda);
 							}
@@ -325,16 +334,43 @@ public class ProcesoSeaceServiceImpl implements ProcesoSeaceService {
 								estado = estadoRepository.findByDescEstado(descEstado); 
 								if (estado == null) {
 									estado = new Estado(descEstado);
-									//estadoRepository.save(estado);
+									estadoRepository.save(estado);
 								}
 								item.setEstado(estado);
-								items.add(item);
 							}							
-						} 
-						
-						colsi = rowi.select("th");
-						if ( colsi.size() == 6 ) {							
-						} 						
+						} else if ( colsi.size() == 6) {
+							if(colsi.get(4).text().length()>0) { //Datos del Proveedor adjudicado								
+								String ruc, razonsocial;
+								valor = colsi.get(0).text().trim();
+								ruc = valor.substring(0, valor.indexOf("-")).trim();
+								razonsocial = valor.substring(valor.indexOf("-")+2);
+								proveedor = proveedorRepository.findByRazonSocial(razonsocial); 
+								if (proveedor == null) {
+									if(ruc.equalsIgnoreCase("CONSORCIO")) {
+										proveedor = new Proveedor(razonsocial, true);
+									} else {
+										proveedor = new Proveedor(ruc, razonsocial);
+									}
+									proveedorRepository.save(proveedor);
+								}
+								item.setProveedor(proveedor);
+								
+								item.setMype(colsi.get(1).text().trim());
+								item.setPromocionSelva(colsi.get(2).text().trim());
+								item.setBonificacionColindante(colsi.get(3).text().trim());
+								
+								valor = colsi.get(4).text().trim();
+								valor = valor.replaceAll(",",""); // quita las comas
+								cantidad = new BigDecimal(valor);
+								item.setCantidadAdjudicada(cantidad);
+								
+								valor = colsi.get(5).text().trim();
+								valor = valor.replaceAll(",",""); // quita las comas
+								monto = new BigDecimal(valor);
+								item.setMontoAdjudicado(monto);								
+							}
+							items.add(item);							
+						}						
 					}
 				}
 			}

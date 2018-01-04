@@ -21,8 +21,8 @@ public class ProcesosBackendApplication {
 	@Bean
 	public CommandLineRunner run() throws Exception {
 		return args -> {			
-			//probando casos: 347368L, 384688L, 395748L
-			procesoSeaceService.getDataProcesoSEACE(395748L);
+			//probando casos: 347368L, 384688L, 395748L, 398482L
+			procesoSeaceService.getDataProcesoSEACE(398482L);
 			//procesoSeaceService.getDataProcesoSEACE(384688L);
 			//procesoSeaceService.getDataProcesoSEACE(347368L); 			
 		};

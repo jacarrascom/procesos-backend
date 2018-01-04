@@ -56,6 +56,25 @@ public class ProcesoItem implements Serializable{
 	@JoinColumn(name = "estado_id", nullable = true)
 	private Estado estado;
 	
+	@ManyToOne(fetch = FetchType.LAZY, cascade= {CascadeType.ALL} ) 
+	@JoinColumn(name = "proveedor_id", nullable = true)
+	private Proveedor proveedor;
+	
+	@Column(name = "mype", nullable = true, length = 20)
+	private String mype;
+	
+	@Column(name = "promocionselva", nullable = true, length = 20)
+	private String promocionSelva;
+	
+	@Column(name = "bonificacioncolindante", nullable = true, length = 20)
+	private String bonificacionColindante;
+	
+	@Column(name = "cantidadadjudicada", nullable = true, precision=18, scale=2)
+	private BigDecimal cantidadAdjudicada;
+	
+	@Column(name = "montoadjudicado", nullable = true, precision=18, scale=2)
+	private BigDecimal montoAdjudicado;
+	
 	@ManyToOne
     @JoinColumn(name = "idconvocatoria", insertable = false, updatable = false, referencedColumnName="idconvocatoria")
     private Proceso proceso;
